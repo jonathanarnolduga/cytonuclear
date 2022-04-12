@@ -1,0 +1,218 @@
+
+  HELP FOR:    Menu of Cytonuclear Dis-equilibrium Analysis Programs
+
+	This menu provides access to the 'DFIT' Group of
+	Population Genetics / Molecular Evolution Programs.
+	Documentation for a particular program can be reviewed
+	by entering a  ?  and the program's menu number.  All
+	programs are run interactively.  Specific documentation on
+        the disequilibrium programs follows.
+
+
+			Documentation for Programs 
+				to Analyze
+			Cytonuclear Disequilibria
+
+Cytonuclear disequilibria are defined in the following table:
+
+                             NUCLEAR GENOTYPE.
+
+    CYTOPLASM        AA           Aa           aa.
+               |______________________________________||
+               |            |            |            ||
+        M      |  UX + D1   |   VX + D2  |   WX + D3  |    X.
+               |            |            |            ||
+               |------------|------------|------------||
+               |            |            |            ||
+        m      |  UY - D1   |   VY - D2  |   WY - D3  |    Y.
+               |            |            |            ||
+               |--------------------------------------|---------
+                                                      ||
+                     U            V            W      |    1.       
+                                                      ||
+       CONSTRAINT: 0 = D1 + D2 + D3.
+       PARTITION : D = D1 + D2/2.
+
+Six programs below estimate these 4 cytonuclear disequilibrium
+measures by the method of maximum likelihood under each of
+six hypotheses under which different cytonuclear disequilibria are zero.
+These hypotheses can be arranged in a hierarchy:
+			      HNR
+                          ---------- 
+                     *    |   D1   |   * 
+                  *       |   D2   |      *   
+               *          |   D3   |         *   
+            *          *  |   D    |  *         * 
+         *          *     ----------     *         * 
+  H1  *          * H2                 H3    *         * HD
+----------       ----------        ----------      ---------- 
+| D1=0   |       | D1     |        |  D1    |      | D1     | 
+| D2     |       | D2=0   |        |  D2    |      | D2     | 
+| D3     |       | D3     |        |  D3=0  |      | D3     | 
+| D      |       | D      |        |  D     |      | D=0    | 
+----------       ----------        ----------      ---------- 
+      *          *           HR             *         * 
+         *          *     ----------     *         *  
+            *          *  |  D1=0  |  *         * 
+               *          |  D2=0  |         * 
+                  *       |  D3=0  |      * 
+                     *    |  D =0  |   *  
+                          ---------- 
+
+The programs tabled below carry out the maximum likelihood estimation.
+ALL programs use maximum likelihood scoring to carry out maximum
+likelihood estimation. They also perform likelihood ratio tests
+of fit to each hypothesis in the hierarchy with the exception
+of HNR, for which there are no degrees of freedom leftover to
+test goodness of fit (a saturated model).
+
+PROGRAM		HYPOTHESIS	WHAT IT DOES
+-----------------------------------------------------------------------
+DFIT		  HNR		FITS HYPOTHESIS HNR TO CYTONUCLEAR DATA
+DFIT1		  H1		FITS HYPOTHESIS H1  TO CYTONUCLEAR DATA
+DFIT2		  H2		FITS HYPOTHESIS H2  TO CYTONUCLEAR DATA
+DFIT3		  H3		FITS HYPOTHESIS H3  TO CYTONUCLEAR DATA
+DFITD		  HD		FITS HYPOTHESIS HD  TO CYTONUCLEAR DATA
+DFITNO		  HR		FITS HYPOTHESIS HR  TO CYTONUCLEAR DATA
+-----------------------------------------------------------------------
+
+All programs are in FORTRAN-4.
+	These six programs also perform an hierarchical analysis of
+cytonuclear disequilibria. Program DFITNO.FOR starts at the bottom
+of the hierarchy and assumes no disequilibrium (HR). The program
+reports a G-test of this hypothesis. The program
+DFIT.FOR is at the top of the hierarchy and assumes all
+disequilibria are nonzero (HNR). Because the model is
+saturated, no test of goodness of fit can be performed.
+The program DFIT1.FOR is in the
+middle of the hierarchy and assumes D1 = 0 alone (H1). This
+program DFIT1 does report a G-test of goodness of fit
+
+One biological explanation for each of the six hypotheses is given
+in the following table:
+
+              HYPOTHESES ABOUT CYTONUCLEAR DISEQUILIBRIA 
+---------------------------------------------------------------- 
+Hypothesis  Disequilibria      Possible explanation     
+---------------------------------------------------------------- 
+H           D1,D2,D3,D         nonrandom matings; directionality 
+ NR                            to matings; fairly young. 
+
+H           D1=0;D=D2/2=-D3/2  directionality to hybrid matings;  
+ 1                             hybrids preferentially backcross 
+                               to one species. 
+
+H           D2=0;D=D1=-D3      species mate assortatively; no 
+ 2                             directionality to hybrid matings. 
+
+H           D3=0;D=D1/2=-D2/2  directionality to hybrid matings;  
+ 3                             hybrids preferentially backcross 
+                               to one species. 
+
+H           D=0;D1=D3=-D2/2    nuclear allele frequencies iden-  
+ D                             tical in the two cytotypes; 
+                               directionality to matings, in 
+                               which one cytotype predisposed 
+                               to hybrid matings.  
+
+H           D=D1=D2=D3=0       random mating;fairly old. 
+ R 
+------------------------------------------------------------------
+A fuller description is given in
+Asmussen, Arnold, and Avise (1987) in Genetics 115: 755-768.
+
+	Before running programs on your own data, first check compiled
+code on data in the following table from Asmussen, Arnold,
+and Avise (1987) based on the data in Table 11:
+
+PROGRAM INPUT: 
+	The program input expects the counts on the interior
+of the table below.
+                                  DATA 
+---------------------------------------------------------------- 
+                             NUCLEAR GENOTYPE 
+
+    CYTOPLASM        AA           Aa           aa 
+               |______________________________________| 
+               |            |            |            | 
+        M      |     N      |     N      |     N      |    N  
+               |      11    |      12    |      13    |     1+ 
+               |------------|------------|------------|
+               |            |            |            | 
+        m      |     N      |     N      |     N      |    N 
+               |      21    |      22    |      23    |     2+ 
+               |--------------------------------------|--------- 
+                                                      | 
+                     N            N            N      |    N 
+                      +1           +2           +3    | 
+---------------------------------------------------------------- 
+
+PROGRAM OUTPUT:
+
+		An example you might try is the following
+data on Bluegill sunfish (Asmussen et al., 1987) using DFIT:
+
+ ESTIMATING DISEQUILIBRIA UNDER NR IN A HYBRID ZONE OF BLUEGILL 
+---------------------------------------------------------------- 
+
+                                Got-2 
+
+    mtDNA-type       AA           Aa           aa.
+               |______________________________________||
+               | ^          | ^          | ^          | ^ 
+        M      | U = .106   | V = .338   | W  = .086  | X = .530 
+               |  1         |  1         |  1         ||
+               |------------|------------|------------||
+               | ^          | ^          | ^          | ^ 
+        m      | U = .079   | V = .238   | W  = .152  | Y = .469 
+               |  2         |  2         |  2         ||
+               |--------------------------------------|---------
+                 ^            ^            ^          ||
+                 U = .185     V = .576     W  = .238  |    1.       
+                                                      ||
+^   ^   ^           ^       ^ 
+P = U + V/2 = .473; Q = 1 - P = .526 
+^    ^   ^^ 
+D1 = U - UX = .106 - .098 = .008 (.0157) 
+      1 
+^    ^   ^^  
+D2 = V - VX = .338 - .305 = .033 (.0199) 
+      1 
+^    ^   ^^ 
+D3 = W - WX = .086 - .126 =-.044 (.0172) 
+      1 
+^    ^   ^      ^^ 
+D  = U + V /2 - PX = .024 (.0131) 
+      1   1 
+                         ^   ^    ^   
+                 (Check: D = D1 + D2/2 = .024) 
+The data used to obtain the frequencies in the table above
+is diplayed in the lower right hand corner of the final
+table. Fit to the other hypotheses is summarized in
+the following hierarchical analysis:
+                 DISEQUILIBRIUM COMPONENTS 
+----------------------------------------------------------------  
+LEPOMIS                 -------------               GOT-2 
+                     *  | .008/.016 |   * 
+                  *     | .033/.020 |      *   
+               *        |-.040/.017 |         *   
+G=0.24(.62) *          *| .024/.012 |  *         * G=3.27*(.07) 
+         *          *    ------------     *         *   
+      *          G=2.63(.11)        G=5.43(.02)        * 
+------------     ------------      ------------    ------------ 
+|  D1=0    |     | .022/.013|      |-.002/.015|    |-.015/.010| 
+| .038/.017|     |  D2=0    |      | .002/.015|    | .030/.020| 
+|-.038/.017|     |-.022/.013|      |  D3=0    |    |-.016/.010| 
+| .019/.008|     | .022/.013|      | .001/.008|    |  D=0     | 
+------------     ------------      ------------    ------------  
+      *          G=2.82*(.09)      G=0.02(.89)        * 
+         *          *     ----------     *         *  
+G=5.21(.02) *          *  |ALL Ds 0|  *         * G=2.18(.14) 
+               *          |G =5.45*|         *    AA Aa aa 
+                  *       | 2      |      *      M16 51 13 
+                     *    |  (.07) |   *         m12 36 23 
+                          ----------                      151 
+
+This concludes the description of the programs.
+
+					Jonathan Arnold
