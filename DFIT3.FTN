@@ -1,0 +1,527 @@
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C                                                                         C
+C                     PROGRAM DFIT3                                       C
+C                                                                         C
+C                     Written by J. Arnold                                C
+C                                                                         C
+C                     DATE: April, 1986                                   C
+C                                                                         C
+C       CALLED BY:    None                                                C
+C       CALLS:        None                                                C
+C       PURPOSE:      To fit a hierarchy of hypotheses about mitochonrial-C
+C nuclear disequilibria to mitochonrial survey data, assuming D3 = 0.	  C
+C                                                                         C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+	DOUBLE PRECISION CHISQR
+	REAL N(3,4),K(2,3),A(6,6),X(6,4),Y(6,1),UVEC(6,1),BETA(4,1),NORM
+	REAL DEL(4,1),XT(4,6),INFO(4,4),VAR(4,4),VVEC(4,1),KK(6,1)
+	REAL SB(4,4),SC(4,4),RES(2,3),E(2,3)
+	REAL SD(4,4),SE(4,4),SF(4,4)
+	REAL SG(4,4),AX(6,4)
+	INTEGER TT
+	DATA TT/5/
+C
+C-----GET DATA
+C
+	WRITE(TT,200) 'M'
+200	FORMAT('$GENOTYPIC COUNTS OF AA, Aa, and aa IN ',A1,' CYTOTYPE? ')
+	READ(TT,*) (N(1,J), J=1,3)
+	WRITE(TT,*)(N(1,J),J=1,3)
+	WRITE(TT,200) 'm'
+	READ(TT,*) (N(2,J), J=1,3)
+	WRITE(TT,*)(N(2,J),J=1,3)
+	DO 1 I=1,2
+	DO 1 J=1,3
+	N(I,4) = N(I,4) + N(I,J)
+	N(3,J) = N(3,J) + N(I,J)
+1	N(3,4) = N(3,4) + N(I,J)
+	L = 0
+	DO 3 I=1,2
+	DO 3 J=1,3
+	L = L + 1
+3	Y(L,1) = N(I,J)
+C
+C-----	CALCULATE ESTIMATES OF 6 GENOTYPIC FREQUENCIES
+C
+	U1 = N(1,1)/N(3,4)
+	V1 = N(1,2)/N(3,4)
+	W1 = N(1,3)/N(3,4)
+	U2 = N(2,1)/N(3,4)
+	V2 = N(2,2)/N(3,4)
+	W2 = N(2,3)/N(3,4)
+	L = 0
+	DO 2 I=1,2
+	DO 2 J=1,3
+	L = L + 1
+	K(I,J) = N(I,J)/N(3,4)
+2	KK(L,1)= K(I,J)
+C
+C-----FORM INITIAL ESTIMATES OF u,v,w,D1,D2, and D
+C
+	U = N(3,1)/N(3,4)
+	V = N(3,2)/N(3,4)
+	W = N(3,3)/N(3,4)
+	R = N(1,4)/N(3,4)
+	S = N(2,4)/N(3,4)
+	D1= U1 - U*R
+	D1= .5*(((N(1,1)+N(2,2))/N(3,4)) - U*R - V*S)
+	D2= (-1.)*D1
+	D3= 0.
+	D = D1 + .5*D2
+	BETA(1,1) = U
+	BETA(2,1) = V
+	BETA(3,1) = R
+	BETA(4,1) = D1
+C
+C------PRINT INITIAL ESTIMATES
+C
+	WRITE(TT,205) U,V,W,R,S,D1,D2,D3,D
+205	FORMAT(1X,'U = ',F6.3,' V = ',F6.3,' W = ',F6.3,' R = ',F6.3,
+     &  ' S = ',F6.3,/,' D1 = ',F6.3,' D2 = ',F6.3,' D3 = ',F6.3,
+     &  ' D = ',F6.3)
+C
+C-----CALCULATE INITIAL ESTIMATE OF 'A' MATRIX
+C
+	CALL AMATRI(K,A)
+C	WRITE(TT,206) ((A(I,J),I=1,6),J=1,6)
+206	FORMAT(1X,'A = ',6(/,1X,6(F8.3,1X)))
+C
+C-----CALCULATE INITIAL ESTIMATE OF 'D' MATRIX
+C
+	CALL DMATRI(U,V,R,X)
+C	WRITE(TT,22066) ((X(I,J),J=1,4),I=1,6)
+22066	FORMAT(1X,'D = ',6(/,1X,4(F8.3,1X)))
+C
+C-----CALCULATE INITIAL 'UVEC' VECTOR
+C
+	CALL MULT(A,Y,UVEC,6,6,1)
+C	WRITE(TT,2066) ((UVEC(I,J),J=1,1),I=1,6)
+2066	FORMAT(1X,'UVEC = ',6(/,1X,1(F8.3,1X)))
+C
+C-----PERFORM ITERATIVELY REWEIGHTED LEAST SQUARES UNTIL RELATIVE ERROR
+C	'ERR' IS LESS THAN 10**-6
+C
+	ERR = 1.
+	ITER = 0
+C	DO 46 LL=1,10
+5	IF(ITER .EQ. 1) GO TO 46
+	IF(ERR .LE. (1./10.**6)) GO TO 4
+46	CONTINUE
+	ITER = ITER + 1
+C
+C-----CALCULATE INFORMATION MATRIX
+C
+	CALL MULT(A,X,AX,6,6,4)
+	CALL TRANS(X,XT,6,4)
+	CALL MULT(XT,AX,INFO,4,6,4)
+	DO 40 I=1,4
+	DO 40 J=1,4
+40	INFO(I,J) = N(3,4)*INFO(I,J)
+C
+C------INVERT INFORMATION MATRIX
+C
+	CALL SYMINV(INFO,SB,SC,SD,SE,SF,SG,VAR,4)
+	WRITE(TT,2067) ((VAR(I,J),J=1,4),I=1,4)
+2067	FORMAT(1X,'VARIANCE-COVARIANCE MATRIX = ',4(/,1X,4(F8.5,1X)))
+	VARW = VAR(1,1) + VAR(2,2) + 2.*VAR(1,2)
+	VARS = VAR(3,3)
+	VARD2= VAR(4,4)
+	VARD3= 0.
+	VARD = .25*VAR(4,4)
+C
+C-----	SOLVE LEAST SQUARES PROBLEM
+C
+	CALL MULT(XT,UVEC,VVEC,4,6,1)
+	CALL MULT(VAR,VVEC,DEL,4,4,1)
+C
+C-----CALCULATE RELATIVE ERROR
+C
+	ERR = NORM(DEL,BETA)
+C	WRITE(TT,*) 'ON ITER ',ITER,' WE HAVE ERR = ',ERR
+C
+C-----UPDATE ESTIMATES
+C
+	U  = U + DEL(1,1)
+	V  = V + DEL(2,1)
+	W  = 1. - U - V
+	R  = R + DEL(3,1)
+	S  = 1. - R
+	D1 = D1 + DEL(4,1)
+	D2 = (-1.)*D1
+	D3 = 0.
+	D  = D1 + .5*D2
+	U1 = U*R + D1
+	V1 = V*R + D2
+	W1 = W*R + D3
+	U2 = U*S - D1
+	V2 = V*S - D2
+	W2 = W*S - D3
+	K(1,1) = U1
+	K(1,2) = V1
+	K(1,3) = W1
+	K(2,1) = U2
+	K(2,2) = V2
+	K(2,3) = W2
+	BETA(1,1) = U
+	BETA(2,1) = V
+	BETA(3,1) = R
+	BETA(4,1) = D1
+	L = 0
+	DO 8 I=1,2
+	DO 8 J=1,3
+	L = L + 1
+8	KK(L,1) = K(I,J)
+C
+C-----RECALCULATE ESTIMATE OF 'A' MATRIX
+C
+	CALL AMATRI(K,A)
+C
+C-----RECALCULATE ESTIMATE OF 'D' MATRIX
+C
+	CALL DMATRI(U,V,R,X)
+C
+C-----RECALCULATE 'u' VECTOR
+C
+	CALL MULT(A,Y,UVEC,6,6,1)
+C
+C-----PRINT RESULTS
+C
+C
+	WRITE(TT,208) ITER,ERR
+208	FORMAT(1X,'ITER = 'I5,'ERR = ',F16.8)
+	WRITE(TT,2033)
+2033	FORMAT(1X,'    U    ','     V   ','     W   ','     R   ',
+     &'     S   ','     D1  ','     D2  ','     D3  ','     D   ')
+	WRITE(TT,201) U,V,W,R,S,D1,D2,D3,D
+	WRITE(TT,2034)
+2034	FORMAT(1X,'    SD   ','     SD  ','     SD  ','     SD  ',
+     &'     SD  ','     SD  ','     SD  ','     SD  ','     SD  ')
+	WRITE(TT,201) (SQRT(VAR(I,I)),I=1,2),SQRT(VARW),SQRT(VAR(3,3)),
+     &  SQRT(VARS),SQRT(VAR(4,4)),SQRT(VARD2),SQRT(VARD3),SQRT(VARD)
+	WRITE(TT,204)
+203	FORMAT(1X,9(A6,1X))
+201	FORMAT(1X,9(F8.4,1X))
+204	FORMAT(/)
+	GO TO 5
+4	CONTINUE
+C46	CONTINUE
+C
+C-----	CALCULATE LIKELIHOOD-RATIO TEST OF GOODNESS OF FIT
+C
+	G = 0
+	DO 41 I=1,2
+	DO 41 J=1,3
+	EXP = N(3,4)*K(I,J)
+	IF(N(I,J) .GT. 0)RES2 = 2*(N(I,J)*ALOG(N(I,J)/EXP)-(N(I,J)-EXP))
+	IF(N(I,J) .EQ. 0)RES2 = 2*EXP
+	RES(I,J) = SQRT(RES2)*SIGN(1.,N(I,J)-EXP)
+	E(I,J) = EXP
+	G = G + RES2
+41	CONTINUE
+	DF = 1.
+      	PROB = CHISQR(DBLE(DF),DBLE(G))
+	PROB = 1. - PROB
+	WRITE(TT,209) G,PROB
+209   FORMAT(1X,' A G-TEST ON 1 DF YIELDS G = ',F10.3,' WITH PROBABILITY
+     & OF ',F10.5)
+C
+C------PRINT COUNTS, EXPECTED COUNTS, AND RESIDUALS
+C
+	DO 45 I=1,2
+	WRITE(TT,211) (N(I,J),  J=1,3)
+	WRITE(TT,212) (E(I,J),  J=1,3)
+	WRITE(TT,213) (RES(I,J),J=1,3)
+45	CONTINUE
+211	FORMAT(1X,'OBSERVED',3(F16.8,1X))
+212	FORMAT(1X,'EXPECTED ',3(F16.8,1X))
+213	FORMAT(1X,'RESIDUALS ',3(F16.8,1X),/)
+C
+C-----CHECK ON CALCULATIONS
+C
+	CALL TRANS(X,XT,6,4)
+	CALL MULT(XT,UVEC,VVEC,4,6,1)
+	WRITE(TT,210) (VVEC(I,1),I=1,4)
+210	FORMAT(4(1X,F11.6),' CHECK')
+	STOP
+	END
+	SUBROUTINE AMATRI(K,A)
+	REAL K(2,3),A(6,6)
+	L = 0
+	DO 2 I=1,6
+	DO 2 J=1,6
+2	A(I,J) = 0.
+	DO 3 I=1,2
+	DO 3 J=1,3
+	L = L + 1
+3	A(L,L) = 1./K(I,J)
+	RETURN
+	END
+	SUBROUTINE DMATRI(U,V,R,D)
+	REAL U,V,R,D(6,4)
+	W = 1. - U - V
+	S = 1. - R
+C
+C-----	ROW 1
+C
+	D(1,1) = R
+	D(1,2) = 0.
+	D(1,3) = U
+	D(1,4) = 1.
+C
+C----- ROW 2
+C
+	D(2,1) = 0.
+	D(2,2) = R
+	D(2,3) = V
+	D(2,4) = (-1.)
+C
+C----- ROW 3
+C
+	D(3,1) = (-1.)*R
+	D(3,2) = (-1.)*R
+	D(3,3) = W
+	D(3,4) = 0.
+C
+C----- ROW 4
+C
+	D(4,1) = S
+	D(4,2) = 0.
+	D(4,3) = (-1.)*U
+	D(4,4) = -1.
+C
+C----- ROW 5
+C
+	D(5,1) = 0.
+	D(5,2) = S
+	D(5,3) = (-1.)*V
+	D(5,4) = 1.
+C
+C-----	ROW 6
+C
+	D(6,1) = (-1)*S
+	D(6,2) = (-1)*S
+	D(6,3) = (-1)*W
+	D(6,4) = 0.
+C
+	RETURN
+	END
+C------------------------------------------------------------------C
+C       LINVERT.FTN                                                C
+C	BY CHRIS WILLIAMS,   JULY 1985                             C
+C------------------------------------------------------------------C
+C	LINVERT.FTN IS USED FOR THE INVERSION OF A SYMMETRIC       C
+C	MATRIX                                                     C
+C------------------------------------------------------------------C
+C       GENERAL COMMENTS                                           C
+C------------------------------------------------------------------C
+C	SA - INPUT MATRIX					   C
+C	DADIN - INVERTED MATRIX					   C
+C	IP - DIMENSION OF EITHER MATRIX				   C
+C								   C
+C       THE REST OF THE ARGUMENTS OF SYMINV ARE OF NO CONCERN      C
+C------------------------------------------------------------------C
+C----------------------------------------------------------------C
+C	           PROGRAM INFORMATION                           C
+C----------------------------------------------------------------C
+C	  VARIABLES IN THE SUBROUTINES:  I  ID  IE  IF           C
+C	     IJK  IN  IP  J  JK  JL  K  SUMK  SUMY  SUMZ         C
+C	     SUM1  SUM2                                          C
+C	NOTE: THIS PROGRAM CAN BE MADE MORE READABLE BY          C
+C	  REDUCING THE NUMBER OF THESE VARIABLES                 C
+C----------------------------------------------------------------C
+C-------------------------------------------------------------C
+C      	             ENTER A,D,U,C                            C
+C-------------------------------------------------------------C
+C-----------------------------------------------------C
+C	SUBROUTINES                                   C
+C-----------------------------------------------------C
+	SUBROUTINE SYMINV(SA,SB,SC,SD,SE,SF,SG,DADIN,IP)
+	DIMENSION SA(IP,IP),SB(IP,IP),SC(IP,IP)
+	DIMENSION SD(IP,IP),SE(IP,IP),SF(IP,IP)
+	DIMENSION SG(IP,IP),DADIN(IP,IP)
+	DO 20 IJK = 1,IP
+	  SB(IJK,IJK)=1.
+20	CONTINUE
+	SD(1,1) = 1./SA(1,1)
+	SE(1,1) = SA(1,1)
+	DO 30 I = 1,IP
+	SC(1,I) = SA(1,I)/SA(1,1)
+30	CONTINUE
+	DO 200 K = 2,IP
+	SUMK = 0.
+	DO 50 J = 1,K-1
+	SUMK = SUMK + SC(J,K)*SC(J,K)*SE(J,J)
+50	CONTINUE
+	SE(K,K) = SA(K,K) - SUMK
+	DO 80 I = K,IP
+	SUMY = 0.
+	DO 60 J = 1,K-1
+	SUMY = SUMY + SC(J,K)*SC(J,I)*SE(J,J)
+60	CONTINUE
+	SC(K,I) = (SA(K,I) - SUMY)/SE(K,K)
+80	CONTINUE
+	DO 120 I = 1,K
+	SUMZ = 0.
+	DO 100 J = 1,K-1
+	SUMZ = SUMZ + SC(J,K)*SD(J,I)*SE(J,J)
+100	CONTINUE
+	SD(K,I) = (SB(K,I) - SUMZ)/SE(K,K)
+120	CONTINUE
+200	CONTINUE
+	DO 220 I = 1,IP
+	DO 210 J = 1,IP
+	SE(I,J) = SQRT(SE(I,J))
+210	CONTINUE
+220	CONTINUE
+	CALL MULT(SE,SD,SF,IP,IP,IP)
+	CALL TRANS(SF,SG,IP,IP)
+	CALL MULT(SG,SF,DADIN,IP,IP,IP)
+C	WRITE(5,*) 'A INVERSE IS'
+C	WRITE(5,*) DADIN
+	RETURN
+	END
+	SUBROUTINE MULT(A,B,C,ID,IE,IF)
+	DIMENSION A(ID,IE),B(IE,IF),C(ID,IF)
+	DO 2200 I=1,ID
+	DO 2100 J=1,IF
+	C(I,J)=0
+	DO 2000 K=1,IE
+	C(I,J)=C(I,J) + A(I,K)*B(K,J)
+2000	CONTINUE
+2100	CONTINUE
+2200	CONTINUE
+	RETURN
+	END
+	SUBROUTINE TRANS(A,B,ID,IE)
+	DIMENSION A(ID,IE),B(IE,ID)
+        DO 2600 I=1,IE
+        DO 2500 J=1,ID
+        B(I,J)=A(J,I)
+2500    CONTINUE
+2600    CONTINUE
+        RETURN
+        END
+	FUNCTION NORM(DEL,BETA)
+	REAL DEL(4,1),BETA(4,1),NORM
+	NORM = 0.
+	DO 1 I=1,4
+	X = DEL(I,1)/BETA(I,1)
+	X = ABS(X)
+	NORM = AMAX1(X,NORM)
+1	CONTINUE
+	RETURN
+	END
+      FUNCTION CHISQR(NDF1,CS)
+      DOUBLE PRECISION CHISQR,NDF1,CS,SUM,TERM,Z,A,D,XN,DENOM,PI
+C
+C  THIS FUNCTION ROUTINE CALCULATES THE PROBABILITY THAT A CHI-SQUARE
+C  VALUE WILL BE LESS THAN A GIVEN VALUE, GIVEN THE NUMBER OF DEGREES
+C  OF FREEDOM.  THE METHOD OF CALCULATION INVOLVES EVALUATION OF THE
+C  INCOMPLETE GAMMA FUNCTION.  THE CALCULATION IS ACCURATE TO AT LEAST
+C  FIVE DECIMAL PLACES.
+C
+C  "A" IS ONE-HALF THE DEGREES OF FREEDOM.
+      A=NDF1/2.
+C  "Z" IS ONE-HALF THE CHI-SQUARE VALUE.
+      Z=CS/2.
+C  SEE IF "A" IS AN INTEGER.
+      NA=IDINT(A)
+      X=FLOAT(NA)
+      XN=DBLE(X)
+      IF((A-XN) .GE. .3)GO TO 1100
+C  IF HERE, "A" IS AN INTEGER.  THE EXACT CHI-SQUARE PROBABILITY  
+C  CAN BE CALCULATED BY THE FOLLOWING METHOD.
+      SUM=1.
+      TERM=1.
+      D=0.
+      IF(NA .EQ. 1)GO TO 5
+      N=NA-1
+      DO 10 I=1,N
+      D=D+1.
+      TERM=TERM*(Z/D)
+   10 SUM=SUM+TERM
+    5 CHISQR=1.-(DEXP(-Z)*SUM)
+      RETURN
+C  IF HERE, "A" IS NOT AN INTEGER.  THE APPROXIMATE CHI-SQUARE
+C  PROBABILITY CAN BE CALCULATED BY ONE OF TWO METHODS, WITH THE
+C  METHOD USED DEPENDING ON THE VALUE OF "Z".  DUE TO FACTORS 
+C  INVOLVED IN THE CALCULATION OF THE ERROR OF THE PROBABILITY,
+C  THE CRITICAL VALUE USED FOR "Z" IS 7.107.  USING THE APPRO-
+C  PRIATE METHOD WILL GIVE AN ERROR IN EACH CASE OF LESS THAN 
+C  10**(-7).
+C  SEE IF "Z" IS LESS THAN 7.107.
+ 1100 IF(Z .LT. 7.107)GO TO 1200
+C  IF HERE, "Z" IS GREATER THAN OR EQUAL TO 7.107.  USE THE
+C  FOLLOWING METHOD TO APPROXIMATE THE CHI-SQUARE PROBABILITY.
+C
+C  USING THIS METHOD OF CALCULATION, IF "Z" IS GREATER THAN OR
+C  EQUAL TO 7.107, THE ERROR OF THE PROBABILITY WILL BE LESS THAN
+C  10**(-7) IF THE NUMBER OF TERMS ("N") IS THE LEAST INTEGER
+C  NOT LESS THAN A+7.107.
+      XN=A+7.107+1.
+      N=IDINT(XN)
+      X=FLOAT(N)
+      XN=DBLE(X)
+      XN=A-XN
+C  CALCULATE THE DENOMINATOR OF THE LAST TERM IN THE SEQUENCE.
+C  NOTE:  THE QUANTITY 0.5 FACTORIAL EQUALS THE SQUARE ROOT OF PI.
+      DENOM=-.5
+      D=-.5
+      XN=DABS(XN)
+      J=IDINT(XN)
+      J=J-1
+      DO 15 I=1,J
+      D=D-1.
+   15 DENOM=DENOM*D
+      PI=4D0*DATAN(1D0)
+      DENOM=DSQRT(PI)/DENOM
+      TERM=(1./Z**XN)/DENOM
+C  THE LAST TERM IN THIS METHOD IS ONE-HALF THE CORRESPONDING
+C  TERM IN THE INFINITE ASYMPTOTIC EXPANSION.
+      SUM=TERM/2.
+      N=N-1
+      XN=-XN
+      DO 20 I=1,N
+      XN=XN+1.
+      TERM=TERM*Z/XN
+   20 SUM=SUM+TERM
+      CHISQR=1.-(DEXP(-Z)*SUM)
+      RETURN
+C  IF HERE, "Z" IS LESS THAN 7.107.  USE THE FOLLOWING METHOD
+C  TO APPROXIMATE THE CHI-SQUARE PROBABILITY.
+C
+C  USING THIS METHOD OF CALCULATION, IF "Z" IS LESS THAN 7.107,
+C  THE ERROR OF THE PROBABILITY WILL BE LESS THAN 10**(-7) IF
+C  THE NUMBER OF TERMS ("N") IS THE LEAST INTEGER NOT LESS THAN
+C  24.75-A.
+ 1200 XN=(24.75-A)+1.
+      N=IDINT(XN)
+C  CALCULATE THE FIRST TERM IN THE SEQUENCE.
+      TERM=1.
+      IF(A .LT. 1.)GO TO 6
+      D=A
+      TERM=1./A
+      IF(NA .EQ. 1)GO TO 6
+      NA=NA-1
+      DO 25 I=1,NA
+      D=D-1.
+   25 TERM=TERM/D
+    6 PI=4.*DATAN(1D0)
+      TERM=2.*(TERM*(Z**A))/DSQRT(PI)
+      SUM=TERM
+      DO 30 I=1,N-2
+      A=A+1.
+      TERM=TERM*(Z/A)
+   30 SUM=SUM+TERM
+C  IN THIS METHOD, THE LAST TERM WILL BE AUGMENTED BY ONE-HALF
+C  OF AN UPPER BOUND TO THE SUM OF THE TERMS OMITTED FROM THE
+C  INFINITE EXPANSION.
+      A=A+1.
+      TERM=TERM*(Z/A)
+      X=FLOAT(N)
+      XN=DBLE(X)
+      TERM=TERM*(1.+(Z/(2.*(A+XN-Z))))
+      SUM=SUM+TERM
+      CHISQR=DEXP(-Z)*SUM
+      RETURN
+      END
